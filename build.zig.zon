@@ -1,0 +1,13 @@
+.{
+    .name = .wasm3,
+    .version = "0.5.0",
+    .minimum_zig_version = "0.13.0",
+
+    .fingerprint = 0x377ef951817ab1a4,
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "source",
+    },
+}
