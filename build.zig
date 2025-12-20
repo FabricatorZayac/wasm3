@@ -10,13 +10,17 @@ pub fn build(b: *std.Build) !void {
 
     const libm3_only = b.option(bool, "libm3", "Build libwasm3 only") orelse false;
 
-    const libwasm3 = b.addStaticLibrary(.{
-        .name = "m3",
+    const lib_mod = b.addModule("m3_root", .{
+        .sanitize_c = .off,
         .target = target,
         .optimize = optimize,
     });
-    libwasm3.root_module.sanitize_c = false; // fno-sanitize=undefined
-    try libwasm3.root_module.c_macros.append(b.allocator, "-Dd_m3HasTracer");
+    try lib_mod.c_macros.append(b.allocator, "-Dd_m3HasTracer");
+    const libwasm3 = b.addLibrary(.{
+        .name = "m3",
+        .linkage = .static,
+        .root_module = lib_mod,
+    });
 
     if (isWasm(libwasm3.rootModuleTarget())) {
         if (libwasm3.rootModuleTarget().os.tag == .wasi) {
@@ -58,10 +62,13 @@ pub fn build(b: *std.Build) !void {
     libwasm3.linkLibC();
 
     if (!libm3_only) {
-        const wasm3 = b.addExecutable(.{
-            .name = "wasm3",
+        const wasm3_mod = b.addModule("wasm3_root", .{
             .target = target,
             .optimize = optimize,
+        });
+        const wasm3 = b.addExecutable(.{
+            .name = "wasm3",
+            .root_module = wasm3_mod,
         });
         for (libwasm3.root_module.include_dirs.items) |dir| {
             wasm3.addIncludePath(dir.path);
