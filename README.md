@@ -1,3 +1,5 @@
+> [!NOTE]
+> The below note is from the original developer, not the maintainer of this fork
 
 > [!NOTE]
 > I regret to inform the community that since [my house was destroyed by russians who invaded my country](https://twitter.com/vshymanskyy/status/1568657607229075456), **Wasm3 will enter a minimal maintenance phase**. At this time, I am unable to continue the development of new features. However, I am committed to keeping the project alive and will actively review and merge incoming Pull Requests. I deeply appreciate your understanding and support during this difficult period. **Your contributions to Wasm3 are now more valuable than ever.**
@@ -65,7 +67,7 @@ Minimum useful system requirements: **~64Kb** for code and **~10Kb** RAM
 | ☑ Multi-value                                | ☑ Gas metering                     |
 | ☑ Bulk memory operations (partial support)   | ☑ Linear memory limit (< 64KiB)    |
 | ☑ Custom page size                           |
-| ⏳ Multiple memories                          |
+| ☑ Multiple memories                          |
 | ⏳ Reference types                            |
 | ☐ Tail call optimization                     |
 | ☐ Fixed-width SIMD                           |
