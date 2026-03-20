@@ -17,6 +17,10 @@ set(sources
 )
 
 add_library(m3 STATIC ${sources})
+set_property(TARGET m3 PROPERTY POSITION_INDEPENDENT_CODE 1)
+
+add_library(m3_shared SHARED $<TARGET_OBJECTS:m3>)
+# add_library(m3_static STATIC $<TARGET_OBJECTS:m3>)
 
 target_include_directories(m3 PUBLIC .)
 
