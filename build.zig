@@ -4,43 +4,26 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const libm3_only = b.option(bool, "libm3", "Build libwasm3 only") orelse false;
-
-    const libwasm3 = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "m3",
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
     });
-    libwasm3.root_module.sanitize_c = false; // fno-sanitize=undefined
-    libwasm3.defineCMacro("d_m3HasTracer", null);
+    lib.root_module.sanitize_c = .off;
+    lib.root_module.addCMacro("d_m3HasTracer", "1");
 
-    if (libwasm3.rootModuleTarget().isWasm()) {
-        if (libwasm3.rootModuleTarget().os.tag == .wasi) {
-            libwasm3.defineCMacro("d_m3HasWASI", null);
-            libwasm3.linkSystemLibrary("wasi-emulated-process-clocks");
-        }
+    if (lib.rootModuleTarget().cpu.arch.isWasm() and lib.rootModuleTarget().os.tag == .wasi) {
+        lib.root_module.addCMacro("d_m3HasWASI", "1");
+        lib.root_module.linkSystemLibrary("wasi-emulated-process-clocks", .{});
     }
-    libwasm3.addIncludePath(b.path("source"));
-    libwasm3.addCSourceFiles(.{
-        .files = &.{
-            "source/m3_api_libc.c",
-            "source/extensions/m3_extensions.c",
-            "source/m3_api_meta_wasi.c",
-            "source/m3_api_tracer.c",
-            "source/m3_api_uvwasi.c",
-            "source/m3_api_wasi.c",
-            "source/m3_bind.c",
-            "source/m3_code.c",
-            "source/m3_compile.c",
-            "source/m3_core.c",
-            "source/m3_env.c",
-            "source/m3_exec.c",
-            "source/m3_function.c",
-            "source/m3_info.c",
-            "source/m3_module.c",
-            "source/m3_parse.c",
-        },
-        .flags = if (libwasm3.rootModuleTarget().isWasm())
+    lib.root_module.addIncludePath(b.path("source"));
+    lib.root_module.addCSourceFiles(.{
+        .root = b.path("source/"),
+        .files = source_files,
+        .flags = if (lib.rootModuleTarget().cpu.arch.isWasm())
             &cflags ++ [_][]const u8{
                 "-Xclang",
                 "-target-feature",
@@ -50,27 +33,67 @@ pub fn build(b: *std.Build) !void {
         else
             &cflags,
     });
-    libwasm3.linkSystemLibrary("m");
-    libwasm3.linkLibC();
+    lib.root_module.linkSystemLibrary("m", .{});
 
-    if (!libm3_only) {
-        const wasm3 = b.addExecutable(.{
-            .name = "wasm3",
+    for (headers) |header| lib.installHeader(b.path("source/").path(b, header), header);
+
+    b.installArtifact(lib);
+
+    const wasm3 = b.addExecutable(.{
+        .name = "wasm3",
+        .root_module = b.createModule(.{
             .target = target,
             .optimize = optimize,
-        });
-        for (libwasm3.root_module.include_dirs.items) |dir| {
-            wasm3.addIncludePath(dir.path);
-        }
-        wasm3.addCSourceFile(.{
-            .file = .{ .cwd_relative = "platforms/app/main.c" },
-            .flags = &cflags,
-        });
+        }),
+    });
+    wasm3.root_module.addCSourceFile(.{
+        .file = .{ .cwd_relative = "platforms/app/main.c" },
+        .flags = &cflags,
+    });
 
-        wasm3.linkLibrary(libwasm3);
-        b.installArtifact(wasm3);
-    } else b.installArtifact(libwasm3);
+    wasm3.root_module.linkLibrary(lib);
+    b.installArtifact(wasm3);
 }
+
+pub const source_files: []const []const u8 = &.{
+    "m3_api_libc.c",
+    "extensions/m3_extensions.c",
+    "m3_api_meta_wasi.c",
+    "m3_api_tracer.c",
+    "m3_api_uvwasi.c",
+    "m3_api_wasi.c",
+    "m3_bind.c",
+    "m3_code.c",
+    "m3_compile.c",
+    "m3_core.c",
+    "m3_env.c",
+    "m3_exec.c",
+    "m3_function.c",
+    "m3_info.c",
+    "m3_module.c",
+    "m3_parse.c",
+};
+
+pub const headers: []const []const u8 = &.{
+    "m3_bind.h",
+    "m3_config_platforms.h",
+    "m3_info.h",
+    "m3_api_libc.h",
+    "m3_api_tracer.h",
+    "m3_api_wasi.h",
+    "m3_compile.h",
+    "m3_env.h",
+    "m3_exec.h",
+    "m3_function.h",
+    "m3_math_utils.h",
+    "wasm3.h",
+    "m3_code.h",
+    "m3_config.h",
+    "m3_core.h",
+    "m3_exception.h",
+    "m3_exec_defs.h",
+    "wasm3_defs.h",
+};
 
 const cflags = [_][]const u8{
     "-Wall",

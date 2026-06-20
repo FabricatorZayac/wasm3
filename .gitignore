@@ -11,4 +11,6 @@ __pycache__/
 .settings
 .vscode
 .DS_Store
-*zig-*/
+.zig-cache
+zig-out
+zig-pkg
